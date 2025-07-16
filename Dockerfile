@@ -39,5 +39,6 @@ COPY --chown=jboss:root target/*.war $JBOSS_HOME/standalone/deployments
 #      COPY --chown=jboss:root standalone.xml  $JBOSS_HOME/standalone/configuration
 
 EXPOSE 8080
+
 # Ensure appropriate permissions for the copied files.
 RUN chmod -R ug+rwX $JBOSS_HOME
