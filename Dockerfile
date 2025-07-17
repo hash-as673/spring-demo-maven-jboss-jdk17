@@ -1,44 +1,32 @@
-# Use EAP 8 Builder image to create a JBoss EAP 8 server
-# with its default configuration
+# -------- Stage 1: Build WAR using Maven --------
+FROM maven:3.9.6-eclipse-temurin-17 AS maven-builder
 
+# Set working directory
+WORKDIR /app
+
+# Copy project files
+COPY . .
+
+# Build WAR file
+RUN mvn clean package -DskipTests
+
+# -------- Stage 2: Build EAP runtime image --------
 FROM registry.redhat.io/jboss-eap-8/eap8-openjdk17-builder-openshift-rhel8:latest AS builder
 
-# Set up environment variables for provisioning.  1 
-ENV GALLEON_PROVISION_FEATURE_PACKS org.jboss.eap:wildfly-ee-galleon-pack,org.jboss.eap.cloud:eap-cloud-galleon-pack
-ENV GALLEON_PROVISION_LAYERS cloud-default-config
-# Specify the JBoss EAP version   2 
-ENV GALLEON_PROVISION_CHANNELS org.jboss.eap.channels:eap-8.0
+ENV GALLEON_PROVISION_FEATURE_PACKS=org.jboss.eap:wildfly-ee-galleon-pack,org.jboss.eap.cloud:eap-cloud-galleon-pack
+ENV GALLEON_PROVISION_LAYERS=cloud-default-config
+ENV GALLEON_PROVISION_CHANNELS=org.jboss.eap.channels:eap-8.0
 
-
-# Run the assemble script to provision the server.
 RUN /usr/local/s2i/assemble
 
-# Copy the JBoss EAP 8 server from the builder image to the runtime image.
+# -------- Stage 3: Runtime image --------
 FROM registry.redhat.io/jboss-eap-8/eap8-openjdk17-runtime-openshift-rhel8:latest AS runtime
 
-# Set appropriate ownership and permissions.
 COPY --from=builder --chown=jboss:root $JBOSS_HOME $JBOSS_HOME
 
-# Steps to add:
-# (1) COPY the WAR/EAR to $JBOSS_HOME/standalone/deployments
-#       with the jboss:root user. For example:
-
-COPY --chown=jboss:root target/*.war $JBOSS_HOME/standalone/deployments
-
-# (2) (optional) server modification. You can modify EAP server configuration:
-#
-#       * invoke management operations. For example
-#
-#        RUN $JBOSS_HOME/bin/jboss-cli.sh --commands="embed-server,/system-property=Foo:add(value=Bar)"
-#
-#        First operation must always be embed-server.
-#
-#       * copy a modified standalone.xml in $JBOSS_HOME/standalone/configuration/
-#          for example
-#
-#      COPY --chown=jboss:root standalone.xml  $JBOSS_HOME/standalone/configuration
+# Copy the WAR built in the first stage
+COPY --from=maven-builder --chown=jboss:root /app/target/*.war $JBOSS_HOME/standalone/deployments/
 
 EXPOSE 8080
 
-# Ensure appropriate permissions for the copied files.
 RUN chmod -R ug+rwX $JBOSS_HOME
