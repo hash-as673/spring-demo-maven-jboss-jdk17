@@ -1,8 +1,8 @@
-com\example\demo\config\WebConfig.class
 com\example\demo\DemoApplication.class
-com\example\demo\config\WebConfig$1.class
-com\example\demo\controller\AuthController.class
 com\example\demo\service\UserService.class
 com\example\demo\model\User.class
 com\example\demo\repository\UserRepository.class
+com\example\demo\config\WebConfig.class
+com\example\demo\config\WebConfig$1.class
+com\example\demo\controller\AuthController.class
 com\example\demo\ServletInitializer.class
